@@ -2,32 +2,20 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Mini Chat Hugging Face</title>
+<title>Гибридный мини ИИ</title>
 <style>
 body { background:#111; color:white; font-family:Arial; padding:20px; }
 #chat { border:1px solid #444; padding:10px; height:400px; overflow-y:auto; margin-top:10px; }
 .msg { margin:8px 0; }
 .user { color:#4da3ff; }
 .ai { color:#7dff9b; }
-input, select { width:70%; padding:10px; margin-top:10px; }
+input { width:70%; padding:10px; margin-top:10px; }
 button { padding:10px; margin-left:5px; margin-top:10px; }
 </style>
 </head>
 <body>
 
-<h2>Mini Chat Hugging Face (один файл)</h2>
-
-<label>Ваш Hugging Face API Token (демо):</label><br>
-<input type="text" id="token" placeholder="Введите токен"><br>
-
-<label>Выберите модель:</label><br>
-<select id="model">
-  <option value="sberbank-ai/rugpt3small_based_on_gpt2">RuGPT-3 Small</option>
-  <option value="sberbank-ai/rugpt3medium_based_on_gpt2">RuGPT-3 Medium</option>
-  <option value="gpt2">GPT-2 (англ.)</option>
-  <option value="EleutherAI/gpt-neo-125M">GPT-Neo 125M</option>
-  <option value="flan-t5-small">FLAN-T5 Small</option>
-</select>
+<h2>Гибридный мини ИИ</h2>
 
 <div id="chat"></div>
 
@@ -38,6 +26,16 @@ button { padding:10px; margin-left:5px; margin-top:10px; }
 <script>
 const chat = document.getElementById("chat");
 
+// ==========================
+// Шаблонные ответы офлайн
+// ==========================
+const responses = {
+  "привет": ["Привет! Как дела?", "Здравствуйте!", "Привет, рад тебя видеть!"],
+  "как дела": ["Всё отлично, а у тебя?", "Нормально, спасибо!", "Хорошо, спасибо за вопрос."],
+  "что умеешь": ["Я могу общаться и отвечать на вопросы.", "Я умею вести беседу и рассказывать истории."],
+  "пока": ["Пока! До встречи.", "До свидания!", "Увидимся позже!"]
+};
+
 function addMsg(t,s){
     let d=document.createElement("div");
     d.className="msg "+s;
@@ -46,42 +44,54 @@ function addMsg(t,s){
     chat.scrollTop=chat.scrollHeight;
 }
 
-// Запрос к Hugging Face Router API
-async function queryHF(message){
-    const token = document.getElementById("token").value.trim();
-    if(!token) return "Ошибка: токен не введён";
-    const model = document.getElementById("model").value;
-
-    try{
-        const response = await fetch(https://api-inference.huggingface.co/models/${model}, {
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ inputs: message })
-        });
-        const data = await response.json();
-        if(data.error) return "Ошибка API: " + data.error;
-        if(Array.isArray(data)) return data[0]?.generated_text || "Нет ответа";
-        if(data.generated_text) return data.generated_text;
-        return "Нет ответа";
-    }catch(e){
-        return "Ошибка запроса: " + e.message;
-    }
+function isQuestion(input){
+    const qwords = ["что","почему","как","когда","зачем","где"];
+    input = input.toLowerCase();
+    return qwords.some(w => input.includes(w));
 }
 
+// ==========================
+// Имитация поиска (здесь нужно будет сервер для реального Google)
+// ==========================
+async function searchGoogle(query){
+    // Демо: возвращаем фразу "нашёл в интернете"
+    // На реальном сервере можно делать fetch к Google Custom Search API
+    return "Поиск в интернете: " + query;
+}
+
+// ==========================
+// Генерация ответа
+// ==========================
+async function generateAnswer(input){
+    input = input.toLowerCase();
+    for(let key in responses){
+        if(input.includes(key)){
+            return responses[key][Math.floor(Math.random()*responses[key].length)];
+        }
+    }
+    if(isQuestion(input)){
+        return await searchGoogle(input);
+    }
+    return "Интересно! Расскажи подробнее.";
+}
+
+// ==========================
+// Отправка сообщения
+// ==========================
 async function send(){
     const input = document.getElementById("input");
     const text = input.value.trim();
     if(!text) return;
     addMsg(text,"user");
     input.value="";
-    const reply = await queryHF(text);
+    const reply = await generateAnswer(text);
     addMsg(reply,"ai");
     speak(reply);
 }
 
+// ==========================
+// Голосовой синтез
+// ==========================
 function speak(text){
     let u = new SpeechSynthesisUtterance(text);
     u.lang="ru-RU";
@@ -89,6 +99,9 @@ function speak(text){
     speechSynthesis.speak(u);
 }
 
+// ==========================
+// Голосовой ввод
+// ==========================
 function voiceInput(){
     let rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     rec.lang="ru-RU";
